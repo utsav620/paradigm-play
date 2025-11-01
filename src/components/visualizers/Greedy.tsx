@@ -125,15 +125,30 @@ const Greedy = () => {
           {/* Graph Visualization */}
           <div className="relative h-80 bg-card rounded-lg border border-paradigm-greedy p-4">
             <svg className="absolute inset-0 w-full h-full">
-              {/* Edges */}
+              {/* Edges with weights */}
               <line x1="100" y1="150" x2="250" y2="80" stroke="hsl(var(--greedy) / 0.3)" strokeWidth="2" />
+              <text x="175" y="110" fill="hsl(var(--greedy-dark))" fontSize="12" fontWeight="bold">4</text>
+              
               <line x1="100" y1="150" x2="250" y2="220" stroke="hsl(var(--greedy) / 0.3)" strokeWidth="2" />
+              <text x="175" y="195" fill="hsl(var(--greedy-dark))" fontSize="12" fontWeight="bold">2</text>
+              
               <line x1="250" y1="80" x2="400" y2="80" stroke="hsl(var(--greedy) / 0.3)" strokeWidth="2" />
+              <text x="325" y="70" fill="hsl(var(--greedy-dark))" fontSize="12" fontWeight="bold">2</text>
+              
               <line x1="250" y1="220" x2="400" y2="220" stroke="hsl(var(--greedy) / 0.3)" strokeWidth="2" />
+              <text x="325" y="240" fill="hsl(var(--greedy-dark))" fontSize="12" fontWeight="bold">5</text>
+              
               <line x1="250" y1="80" x2="250" y2="220" stroke="hsl(var(--greedy) / 0.3)" strokeWidth="2" />
+              <text x="260" y="150" fill="hsl(var(--greedy-dark))" fontSize="12" fontWeight="bold">1</text>
+              
               <line x1="400" y1="80" x2="550" y2="150" stroke="hsl(var(--greedy) / 0.3)" strokeWidth="2" />
+              <text x="475" y="110" fill="hsl(var(--greedy-dark))" fontSize="12" fontWeight="bold">2</text>
+              
               <line x1="400" y1="220" x2="550" y2="150" stroke="hsl(var(--greedy) / 0.3)" strokeWidth="2" />
+              <text x="475" y="195" fill="hsl(var(--greedy-dark))" fontSize="12" fontWeight="bold">1</text>
+              
               <line x1="400" y1="80" x2="400" y2="220" stroke="hsl(var(--greedy) / 0.3)" strokeWidth="2" />
+              <text x="410" y="150" fill="hsl(var(--greedy-dark))" fontSize="12" fontWeight="bold">1</text>
             </svg>
 
             <AnimatePresence>

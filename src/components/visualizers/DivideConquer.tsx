@@ -133,6 +133,25 @@ const DivideConquer = () => {
                 const isHighlighted = currentStepData.highlight.includes(index);
                 const maxValue = Math.max(...initialArray);
                 const height = (value / maxValue) * 200;
+                
+                // Assign different colors to different sub-arrays
+                const getSubArrayColor = (idx: number) => {
+                  const colors = [
+                    "hsl(210, 100%, 56%)", // blue
+                    "hsl(142, 76%, 36%)",  // green
+                    "hsl(262, 83%, 58%)",  // purple
+                    "hsl(346, 77%, 50%)",  // red
+                    "hsl(43, 96%, 56%)",   // yellow
+                    "hsl(173, 80%, 40%)",  // teal
+                    "hsl(24, 100%, 50%)",  // orange
+                  ];
+                  return colors[idx % colors.length];
+                };
+
+                const subArrayIndex = Math.floor(index / Math.max(1, 7 / (currentStepData.level + 1)));
+                const bgColor = isHighlighted 
+                  ? getSubArrayColor(subArrayIndex)
+                  : "hsl(var(--divide-conquer) / 0.2)";
 
                 return (
                   <motion.div
@@ -141,9 +160,7 @@ const DivideConquer = () => {
                     animate={{ 
                       opacity: 1, 
                       scale: 1,
-                      backgroundColor: isHighlighted 
-                        ? "hsl(var(--divide-conquer))" 
-                        : "hsl(var(--divide-conquer) / 0.3)"
+                      backgroundColor: bgColor
                     }}
                     exit={{ opacity: 0, scale: 0.8 }}
                     transition={{ duration: 0.3 }}

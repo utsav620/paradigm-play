@@ -3,9 +3,18 @@ import { motion } from "framer-motion";
 import ControlPanel from "@/components/ControlPanel";
 import { Card } from "@/components/ui/card";
 
+interface TreeNode {
+  value: number;
+  computed: boolean;
+  x: number;
+  y: number;
+  children?: TreeNode[];
+}
+
 interface Step {
-  table: (number | null)[][];
-  currentCell: [number, number] | null;
+  memo: (number | null)[];
+  currentIndex: number | null;
+  tree: TreeNode;
   description: string;
 }
 
@@ -15,50 +24,90 @@ const DynamicProgramming = () => {
   const [speed, setSpeed] = useState(1);
   const [steps, setSteps] = useState<Step[]>([]);
 
-  const n = 10; // Calculate Fibonacci up to F(10)
+  const n = 7; // Calculate Fibonacci up to F(7) for better tree visibility
 
-  // Generate Fibonacci DP steps
+  // Generate Fibonacci Memoization steps
   useEffect(() => {
     const generatedSteps: Step[] = [];
-    const table: (number | null)[][] = Array(2)
-      .fill(null)
-      .map(() => Array(n + 1).fill(null));
+    const memo: (number | null)[] = Array(n + 1).fill(null);
+
+    // Build recursion tree structure
+    const buildTree = (num: number, x: number, y: number, width: number): TreeNode => {
+      if (num <= 1) {
+        return { value: num, computed: false, x, y };
+      }
+      return {
+        value: num,
+        computed: false,
+        x,
+        y,
+        children: [
+          buildTree(num - 1, x - width, y + 80, width / 2),
+          buildTree(num - 2, x + width, y + 80, width / 2),
+        ],
+      };
+    };
+
+    const tree = buildTree(n, 400, 50, 150);
 
     generatedSteps.push({
-      table: JSON.parse(JSON.stringify(table)),
-      currentCell: null,
-      description: "Initialize empty table for Fibonacci sequence",
+      memo: [...memo],
+      currentIndex: null,
+      tree: JSON.parse(JSON.stringify(tree)),
+      description: `Computing Fibonacci(${n}) using memoization`,
     });
 
-    // Base cases
-    table[0][0] = 0;
-    table[0][1] = 1;
-    generatedSteps.push({
-      table: JSON.parse(JSON.stringify(table)),
-      currentCell: [0, 0],
-      description: "Base case: F(0) = 0",
-    });
-
-    generatedSteps.push({
-      table: JSON.parse(JSON.stringify(table)),
-      currentCell: [0, 1],
-      description: "Base case: F(1) = 1",
-    });
-
-    // Fill the table
-    for (let i = 2; i <= n; i++) {
-      table[0][i] = table[0][i - 1]! + table[0][i - 2]!;
+    // Simulate memoization computation
+    const computeFib = (num: number, currentTree: TreeNode): number => {
       generatedSteps.push({
-        table: JSON.parse(JSON.stringify(table)),
-        currentCell: [0, i],
-        description: `F(${i}) = F(${i - 1}) + F(${i - 2}) = ${table[0][i - 1]} + ${table[0][i - 2]} = ${table[0][i]}`,
+        memo: [...memo],
+        currentIndex: num,
+        tree: JSON.parse(JSON.stringify(tree)),
+        description: `Checking F(${num})...`,
       });
-    }
+
+      if (memo[num] !== null) {
+        generatedSteps.push({
+          memo: [...memo],
+          currentIndex: num,
+          tree: JSON.parse(JSON.stringify(tree)),
+          description: `F(${num}) already computed: ${memo[num]} (from memo)`,
+        });
+        return memo[num]!;
+      }
+
+      if (num <= 1) {
+        memo[num] = num;
+        generatedSteps.push({
+          memo: [...memo],
+          currentIndex: num,
+          tree: JSON.parse(JSON.stringify(tree)),
+          description: `Base case: F(${num}) = ${num}`,
+        });
+        return num;
+      }
+
+      const fib1 = computeFib(num - 1, currentTree);
+      const fib2 = computeFib(num - 2, currentTree);
+      memo[num] = fib1 + fib2;
+
+      generatedSteps.push({
+        memo: [...memo],
+        currentIndex: num,
+        tree: JSON.parse(JSON.stringify(tree)),
+        description: `F(${num}) = F(${num - 1}) + F(${num - 2}) = ${fib1} + ${fib2} = ${memo[num]}`,
+      });
+
+      return memo[num]!;
+    };
+
+    computeFib(n, tree);
 
     generatedSteps.push({
-      table: JSON.parse(JSON.stringify(table)),
-      currentCell: null,
-      description: `Complete! F(${n}) = ${table[0][n]}`,
+      memo: [...memo],
+      currentIndex: null,
+      tree: JSON.parse(JSON.stringify(tree)),
+      description: `Complete! F(${n}) = ${memo[n]}`,
     });
 
     setSteps(generatedSteps);
@@ -86,27 +135,89 @@ const DynamicProgramming = () => {
 
   const currentStepData = steps[currentStep] || steps[0];
 
+  const renderTree = (node: TreeNode | undefined, currentIdx: number | null): JSX.Element | null => {
+    if (!node) return null;
+
+    const isCurrent = node.value === currentIdx;
+    const isComputed = currentStepData.memo[node.value] !== null;
+
+    return (
+      <g key={`${node.x}-${node.y}-${node.value}`}>
+        {node.children?.map((child, idx) => (
+          <line
+            key={idx}
+            x1={node.x}
+            y1={node.y}
+            x2={child.x}
+            y2={child.y}
+            stroke="hsl(var(--dynamic-prog) / 0.3)"
+            strokeWidth="2"
+          />
+        ))}
+        <motion.g
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: isCurrent ? 1.2 : 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <circle
+            cx={node.x}
+            cy={node.y}
+            r="20"
+            fill={
+              isCurrent
+                ? "hsl(var(--dynamic-prog))"
+                : isComputed
+                ? "hsl(var(--dynamic-prog-dark))"
+                : "hsl(var(--card))"
+            }
+            stroke="hsl(var(--dynamic-prog))"
+            strokeWidth="2"
+          />
+          <text
+            x={node.x}
+            y={node.y + 5}
+            textAnchor="middle"
+            fill="white"
+            fontSize="12"
+            fontWeight="bold"
+          >
+            {node.value}
+          </text>
+        </motion.g>
+        {node.children?.map((child) => renderTree(child, currentIdx))}
+      </g>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <Card className="p-8 bg-paradigm-dynamic-light border-paradigm-dynamic">
         <div className="space-y-6">
           <div>
             <h2 className="text-2xl font-bold text-paradigm-dynamic-dark mb-2">
-              Fibonacci - Dynamic Programming
+              Fibonacci - Dynamic Programming (Memoization)
             </h2>
             <p className="text-sm text-muted-foreground">
-              Watch how the table is filled iteratively, building solutions from smaller subproblems.
+              Watch the recursion tree and see how memoization avoids redundant calculations.
             </p>
           </div>
 
-          {/* Table Visualization */}
-          <div className="overflow-x-auto">
-            <div className="flex gap-2 justify-center py-8">
-              {currentStepData?.table[0].map((value, index) => {
-                const isCurrent =
-                  currentStepData.currentCell &&
-                  currentStepData.currentCell[0] === 0 &&
-                  currentStepData.currentCell[1] === index;
+          {/* Recursion Tree */}
+          <div className="bg-card rounded-lg border border-paradigm-dynamic p-4">
+            <h3 className="text-sm font-semibold text-paradigm-dynamic-dark mb-4">Recursion Tree</h3>
+            <svg className="w-full h-96">
+              {renderTree(currentStepData?.tree, currentStepData?.currentIndex)}
+            </svg>
+          </div>
+
+          {/* Memoization Table */}
+          <div className="bg-card rounded-lg border border-paradigm-dynamic p-4">
+            <h3 className="text-sm font-semibold text-paradigm-dynamic-dark mb-4">
+              Memoization Array (DP Table)
+            </h3>
+            <div className="flex gap-2 justify-center flex-wrap">
+              {currentStepData?.memo.map((value, index) => {
+                const isCurrent = currentStepData.currentIndex === index;
 
                 return (
                   <motion.div
@@ -137,10 +248,10 @@ const DynamicProgramming = () => {
             </div>
           </div>
 
-          {/* Recursion Tree Hint */}
+          {/* Hint */}
           <div className="p-4 bg-card rounded-lg border border-paradigm-dynamic">
             <p className="text-xs text-center text-muted-foreground">
-              💡 DP avoids redundant calculations by storing computed values
+              💡 Memoization stores results to avoid recalculating the same values
             </p>
           </div>
 
