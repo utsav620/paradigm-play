@@ -46,42 +46,45 @@ const DivideConquer = () => {
         x,
         y,
         children: [
-          buildTree(left, x - width, y + 100, width / 2),
-          buildTree(right, x + width, y + 100, width / 2),
+          buildTree(left, x - width, y + 120, width / 2),
+          buildTree(right, x + width, y + 120, width / 2),
         ],
       };
     };
 
-    const tree = buildTree([...initialArray], 400, 50, 150);
+    const tree = buildTree([...initialArray], 400, 60, 200);
     
     generatedSteps.push({
       array: [...initialArray],
       highlight: [],
-      description: "Initial unsorted array",
+      description: "Initial unsorted array - starting merge sort",
       level: 0,
       tree: JSON.parse(JSON.stringify(tree)),
-      currentNode: null,
+      currentNode: tree,
     });
 
     const mergeSort = (arr: number[], start: number, level: number, node: TreeNode): number[] => {
+      // Show current node being processed
+      generatedSteps.push({
+        array: [...initialArray],
+        highlight: Array.from({ length: arr.length }, (_, i) => start + i),
+        description: arr.length > 1 ? `Divide: [${arr.join(', ')}]` : `Base case: [${arr[0]}]`,
+        level,
+        tree: JSON.parse(JSON.stringify(tree)),
+        currentNode: node,
+      });
+
       if (arr.length <= 1) return arr;
 
       const mid = Math.floor(arr.length / 2);
       const left = arr.slice(0, mid);
       const right = arr.slice(mid);
 
-      generatedSteps.push({
-        array: [...initialArray],
-        highlight: Array.from({ length: arr.length }, (_, i) => start + i),
-        description: `Divide: Splitting array at position ${mid}`,
-        level,
-        tree: JSON.parse(JSON.stringify(tree)),
-        currentNode: node,
-      });
-
+      // Recursively sort left and right
       const sortedLeft = mergeSort(left, start, level + 1, node.children![0]);
       const sortedRight = mergeSort(right, start + mid, level + 1, node.children![1]);
 
+      // Merge phase
       const merged = merge(sortedLeft, sortedRight, start, level, node);
       return merged;
     };
@@ -112,7 +115,7 @@ const DivideConquer = () => {
           return val;
         }),
         highlight: Array.from({ length: merged.length }, (_, i) => start + i),
-        description: `Merge: Combining sorted subarrays`,
+        description: `Merge: [${merged.join(', ')}]`,
         level,
         tree: JSON.parse(JSON.stringify(tree)),
         currentNode: mergeNode,
@@ -162,6 +165,7 @@ const DivideConquer = () => {
     const isCurrent = currentStepData.currentNode?.x === node.x && 
                       currentStepData.currentNode?.y === node.y;
     const arrayStr = node.array.join(", ");
+    const rectWidth = Math.max(100, node.array.length * 25);
 
     return (
       <g key={`${node.x}-${node.y}`}>
@@ -169,9 +173,9 @@ const DivideConquer = () => {
           <line
             key={idx}
             x1={node.x}
-            y1={node.y + 20}
+            y1={node.y + 25}
             x2={child.x}
-            y2={child.y - 20}
+            y2={child.y - 25}
             stroke="hsl(var(--divide-conquer) / 0.4)"
             strokeWidth="2"
           />
@@ -185,11 +189,11 @@ const DivideConquer = () => {
           transition={{ duration: 0.3 }}
         >
           <rect
-            x={node.x - 40}
-            y={node.y - 15}
-            width="80"
-            height="30"
-            rx="5"
+            x={node.x - rectWidth / 2}
+            y={node.y - 20}
+            width={rectWidth}
+            height="40"
+            rx="8"
             fill={isCurrent ? "hsl(var(--divide-conquer))" : "hsl(var(--card))"}
             stroke="hsl(var(--divide-conquer))"
             strokeWidth="2"
@@ -199,10 +203,10 @@ const DivideConquer = () => {
             y={node.y + 5}
             textAnchor="middle"
             fill={isCurrent ? "white" : "hsl(var(--divide-conquer-dark))"}
-            fontSize="10"
+            fontSize="12"
             fontWeight="bold"
           >
-            {node.array.length > 3 ? `[${node.array.length}]` : `[${arrayStr}]`}
+            [{arrayStr}]
           </text>
         </motion.g>
         {node.children?.map((child) => renderTree(child))}
@@ -225,8 +229,8 @@ const DivideConquer = () => {
 
           {/* Recursion Tree */}
           <div className="bg-card rounded-lg border border-paradigm-divide p-4">
-            <h3 className="text-sm font-semibold text-paradigm-divide-dark mb-4">Recursion Tree</h3>
-            <svg className="w-full h-96">
+            <h3 className="text-sm font-semibold text-paradigm-divide-dark mb-4">Recursion Tree (Divide Phase)</h3>
+            <svg className="w-full h-[600px]">
               {renderTree(currentStepData?.tree)}
             </svg>
           </div>

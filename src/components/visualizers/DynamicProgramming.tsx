@@ -150,6 +150,18 @@ const DynamicProgramming = () => {
     const isCurrent = node.value === currentIdx;
     const isComputed = currentStepData.memo[node.value] !== null;
     const isMemoHit = currentStepData.memoHits.has(node.value);
+    
+    // Determine color: memo hits are yellow, raw calculations are dark purple, current is bright purple
+    let fillColor;
+    if (isCurrent) {
+      fillColor = "hsl(var(--dynamic-prog))"; // Bright purple for current
+    } else if (isMemoHit) {
+      fillColor = "hsl(43, 96%, 56%)"; // Yellow for memoization hits
+    } else if (isComputed) {
+      fillColor = "hsl(var(--dynamic-prog-dark))"; // Dark purple for raw calculations
+    } else {
+      fillColor = "hsl(var(--card))"; // Not yet computed
+    }
 
     return (
       <g key={`${node.x}-${node.y}-${node.value}`}>
@@ -173,15 +185,7 @@ const DynamicProgramming = () => {
             cx={node.x}
             cy={node.y}
             r="20"
-            fill={
-              isCurrent
-                ? "hsl(var(--dynamic-prog))"
-                : isMemoHit
-                ? "hsl(43, 96%, 56%)"
-                : isComputed
-                ? "hsl(var(--dynamic-prog-dark))"
-                : "hsl(var(--card))"
-            }
+            fill={fillColor}
             stroke="hsl(var(--dynamic-prog))"
             strokeWidth="2"
           />
