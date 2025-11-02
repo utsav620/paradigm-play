@@ -8,6 +8,8 @@ interface TreeNode {
   computed: boolean;
   x: number;
   y: number;
+  isMemoHit?: boolean; // Whether this specific node was a memo hit
+  isRawCalc?: boolean; // Whether this specific node was a raw calculation
   children?: TreeNode[];
 }
 
@@ -60,8 +62,27 @@ const DynamicProgramming = () => {
       memoHits: new Set(memoHits),
     });
 
+    // Mark nodes in tree during execution
+    const markNode = (node: TreeNode | undefined, targetValue: number, isMemo: boolean): boolean => {
+      if (!node) return false;
+      if (node.value === targetValue && !node.isRawCalc && !node.isMemoHit) {
+        if (isMemo) {
+          node.isMemoHit = true;
+        } else {
+          node.isRawCalc = true;
+        }
+        return true;
+      }
+      if (node.children) {
+        for (const child of node.children) {
+          if (markNode(child, targetValue, isMemo)) return true;
+        }
+      }
+      return false;
+    };
+
     // Simulate memoization computation
-    const computeFib = (num: number, currentTree: TreeNode): number => {
+    const computeFib = (num: number): number => {
       generatedSteps.push({
         memo: [...memo],
         currentIndex: num,
@@ -72,6 +93,7 @@ const DynamicProgramming = () => {
 
       if (memo[num] !== null) {
         memoHits.add(num);
+        markNode(tree, num, true); // Mark as memoization hit
         generatedSteps.push({
           memo: [...memo],
           currentIndex: num,
@@ -84,6 +106,7 @@ const DynamicProgramming = () => {
 
       if (num <= 1) {
         memo[num] = num;
+        markNode(tree, num, false); // Mark as raw calculation
         generatedSteps.push({
           memo: [...memo],
           currentIndex: num,
@@ -94,8 +117,9 @@ const DynamicProgramming = () => {
         return num;
       }
 
-      const fib1 = computeFib(num - 1, currentTree);
-      const fib2 = computeFib(num - 2, currentTree);
+      markNode(tree, num, false); // Mark as raw calculation before computing
+      const fib1 = computeFib(num - 1);
+      const fib2 = computeFib(num - 2);
       memo[num] = fib1 + fib2;
 
       generatedSteps.push({
@@ -109,7 +133,7 @@ const DynamicProgramming = () => {
       return memo[num]!;
     };
 
-    computeFib(n, tree);
+    computeFib(n);
 
     generatedSteps.push({
       memo: [...memo],
@@ -148,19 +172,17 @@ const DynamicProgramming = () => {
     if (!node) return null;
 
     const isCurrent = node.value === currentIdx;
-    const isComputed = currentStepData.memo[node.value] !== null;
-    const isMemoHit = currentStepData.memoHits.has(node.value);
     
-    // Determine color: memo hits are yellow, raw calculations are dark purple, current is bright purple
+    // Determine color based on node's execution history
     let fillColor;
     if (isCurrent) {
-      fillColor = "hsl(var(--dynamic-prog))"; // Bright purple for current
-    } else if (isMemoHit) {
-      fillColor = "hsl(43, 96%, 56%)"; // Yellow for memoization hits
-    } else if (isComputed) {
-      fillColor = "hsl(var(--dynamic-prog-dark))"; // Dark purple for raw calculations
+      fillColor = "hsl(var(--dynamic-prog))"; // Bright purple for current node being processed
+    } else if (node.isMemoHit) {
+      fillColor = "hsl(43, 96%, 56%)"; // Yellow for memoization hits (retrieved from cache)
+    } else if (node.isRawCalc) {
+      fillColor = "hsl(var(--dynamic-prog-dark))"; // Dark purple for raw calculations (computed fresh)
     } else {
-      fillColor = "hsl(var(--card))"; // Not yet computed
+      fillColor = "hsl(var(--card))"; // Gray for not yet accessed
     }
 
     return (
