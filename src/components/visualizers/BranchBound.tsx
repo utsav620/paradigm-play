@@ -168,6 +168,13 @@ const BranchBound = () => {
                   const dist = getDistance(city1.id, city2.id);
                   const midX = (city1.x + city2.x) / 2;
                   const midY = (city1.y + city2.y) / 2;
+                  
+                  // Calculate offset for label positioning to avoid overlap
+                  const dx = city2.x - city1.x;
+                  const dy = city2.y - city1.y;
+                  const length = Math.sqrt(dx * dx + dy * dy);
+                  const offsetX = (-dy / length) * 15;
+                  const offsetY = (dx / length) * 15;
 
                   const isInCurrentRoute =
                     currentStepData?.currentRoute &&
@@ -188,9 +195,19 @@ const BranchBound = () => {
                         }
                         strokeWidth={isInCurrentRoute ? "3" : "1"}
                       />
+                      <rect
+                        x={midX + offsetX - 10}
+                        y={midY + offsetY - 8}
+                        width="20"
+                        height="16"
+                        fill="hsl(var(--card))"
+                        stroke="hsl(var(--border))"
+                        strokeWidth="1"
+                        rx="3"
+                      />
                       <text
-                        x={midX}
-                        y={midY - 5}
+                        x={midX + offsetX}
+                        y={midY + offsetY + 4}
                         textAnchor="middle"
                         fill="hsl(var(--branch-bound-dark))"
                         fontSize="11"

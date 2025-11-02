@@ -16,6 +16,7 @@ interface Step {
   currentIndex: number | null;
   tree: TreeNode;
   description: string;
+  memoHits: Set<number>;
 }
 
 const DynamicProgramming = () => {
@@ -30,6 +31,7 @@ const DynamicProgramming = () => {
   useEffect(() => {
     const generatedSteps: Step[] = [];
     const memo: (number | null)[] = Array(n + 1).fill(null);
+    const memoHits = new Set<number>();
 
     // Build recursion tree structure
     const buildTree = (num: number, x: number, y: number, width: number): TreeNode => {
@@ -55,6 +57,7 @@ const DynamicProgramming = () => {
       currentIndex: null,
       tree: JSON.parse(JSON.stringify(tree)),
       description: `Computing Fibonacci(${n}) using memoization`,
+      memoHits: new Set(memoHits),
     });
 
     // Simulate memoization computation
@@ -64,14 +67,17 @@ const DynamicProgramming = () => {
         currentIndex: num,
         tree: JSON.parse(JSON.stringify(tree)),
         description: `Checking F(${num})...`,
+        memoHits: new Set(memoHits),
       });
 
       if (memo[num] !== null) {
+        memoHits.add(num);
         generatedSteps.push({
           memo: [...memo],
           currentIndex: num,
           tree: JSON.parse(JSON.stringify(tree)),
-          description: `F(${num}) already computed: ${memo[num]} (from memo)`,
+          description: `F(${num}) already computed: ${memo[num]} (from memo) ✨`,
+          memoHits: new Set(memoHits),
         });
         return memo[num]!;
       }
@@ -83,6 +89,7 @@ const DynamicProgramming = () => {
           currentIndex: num,
           tree: JSON.parse(JSON.stringify(tree)),
           description: `Base case: F(${num}) = ${num}`,
+          memoHits: new Set(memoHits),
         });
         return num;
       }
@@ -96,6 +103,7 @@ const DynamicProgramming = () => {
         currentIndex: num,
         tree: JSON.parse(JSON.stringify(tree)),
         description: `F(${num}) = F(${num - 1}) + F(${num - 2}) = ${fib1} + ${fib2} = ${memo[num]}`,
+        memoHits: new Set(memoHits),
       });
 
       return memo[num]!;
@@ -108,6 +116,7 @@ const DynamicProgramming = () => {
       currentIndex: null,
       tree: JSON.parse(JSON.stringify(tree)),
       description: `Complete! F(${n}) = ${memo[n]}`,
+      memoHits: new Set(memoHits),
     });
 
     setSteps(generatedSteps);
@@ -140,6 +149,7 @@ const DynamicProgramming = () => {
 
     const isCurrent = node.value === currentIdx;
     const isComputed = currentStepData.memo[node.value] !== null;
+    const isMemoHit = currentStepData.memoHits.has(node.value);
 
     return (
       <g key={`${node.x}-${node.y}-${node.value}`}>
@@ -166,6 +176,8 @@ const DynamicProgramming = () => {
             fill={
               isCurrent
                 ? "hsl(var(--dynamic-prog))"
+                : isMemoHit
+                ? "hsl(43, 96%, 56%)"
                 : isComputed
                 ? "hsl(var(--dynamic-prog-dark))"
                 : "hsl(var(--card))"
@@ -250,9 +262,16 @@ const DynamicProgramming = () => {
 
           {/* Hint */}
           <div className="p-4 bg-card rounded-lg border border-paradigm-dynamic">
-            <p className="text-xs text-center text-muted-foreground">
-              💡 Memoization stores results to avoid recalculating the same values
-            </p>
+            <div className="flex items-center justify-center gap-4 text-xs">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-paradigm-dynamic-dark border-2 border-paradigm-dynamic"></div>
+                <span>Raw Calculation</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full border-2 border-paradigm-dynamic" style={{ backgroundColor: "hsl(43, 96%, 56%)" }}></div>
+                <span>Memoization Hit ✨</span>
+              </div>
+            </div>
           </div>
 
           {/* Step Description */}

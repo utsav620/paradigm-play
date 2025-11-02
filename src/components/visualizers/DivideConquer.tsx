@@ -3,11 +3,21 @@ import { motion, AnimatePresence } from "framer-motion";
 import ControlPanel from "@/components/ControlPanel";
 import { Card } from "@/components/ui/card";
 
+interface TreeNode {
+  array: number[];
+  x: number;
+  y: number;
+  children?: TreeNode[];
+  isMerging?: boolean;
+}
+
 interface Step {
   array: number[];
   highlight: number[];
   description: string;
   level: number;
+  tree?: TreeNode;
+  currentNode?: TreeNode | null;
 }
 
 const DivideConquer = () => {
@@ -18,17 +28,42 @@ const DivideConquer = () => {
 
   const initialArray = [38, 27, 43, 3, 9, 82, 10];
 
-  // Generate merge sort steps
+  // Generate merge sort steps with tree
   useEffect(() => {
     const generatedSteps: Step[] = [];
+    
+    // Build tree structure
+    const buildTree = (arr: number[], x: number, y: number, width: number): TreeNode => {
+      if (arr.length <= 1) {
+        return { array: arr, x, y };
+      }
+      const mid = Math.floor(arr.length / 2);
+      const left = arr.slice(0, mid);
+      const right = arr.slice(mid);
+      
+      return {
+        array: arr,
+        x,
+        y,
+        children: [
+          buildTree(left, x - width, y + 100, width / 2),
+          buildTree(right, x + width, y + 100, width / 2),
+        ],
+      };
+    };
+
+    const tree = buildTree([...initialArray], 400, 50, 150);
+    
     generatedSteps.push({
       array: [...initialArray],
       highlight: [],
       description: "Initial unsorted array",
       level: 0,
+      tree: JSON.parse(JSON.stringify(tree)),
+      currentNode: null,
     });
 
-    const mergeSort = (arr: number[], start: number, level: number): number[] => {
+    const mergeSort = (arr: number[], start: number, level: number, node: TreeNode): number[] => {
       if (arr.length <= 1) return arr;
 
       const mid = Math.floor(arr.length / 2);
@@ -40,16 +75,18 @@ const DivideConquer = () => {
         highlight: Array.from({ length: arr.length }, (_, i) => start + i),
         description: `Divide: Splitting array at position ${mid}`,
         level,
+        tree: JSON.parse(JSON.stringify(tree)),
+        currentNode: node,
       });
 
-      const sortedLeft = mergeSort(left, start, level + 1);
-      const sortedRight = mergeSort(right, start + mid, level + 1);
+      const sortedLeft = mergeSort(left, start, level + 1, node.children![0]);
+      const sortedRight = mergeSort(right, start + mid, level + 1, node.children![1]);
 
-      const merged = merge(sortedLeft, sortedRight, start, level);
+      const merged = merge(sortedLeft, sortedRight, start, level, node);
       return merged;
     };
 
-    const merge = (left: number[], right: number[], start: number, level: number): number[] => {
+    const merge = (left: number[], right: number[], start: number, level: number, node: TreeNode): number[] => {
       const result: number[] = [];
       let i = 0, j = 0;
 
@@ -65,6 +102,8 @@ const DivideConquer = () => {
 
       const merged = [...result, ...left.slice(i), ...right.slice(j)];
       
+      const mergeNode = { ...node, isMerging: true };
+      
       generatedSteps.push({
         array: [...initialArray].map((val, idx) => {
           if (idx >= start && idx < start + merged.length) {
@@ -75,17 +114,21 @@ const DivideConquer = () => {
         highlight: Array.from({ length: merged.length }, (_, i) => start + i),
         description: `Merge: Combining sorted subarrays`,
         level,
+        tree: JSON.parse(JSON.stringify(tree)),
+        currentNode: mergeNode,
       });
 
       return merged;
     };
 
-    mergeSort([...initialArray], 0, 0);
+    mergeSort([...initialArray], 0, 0, tree);
     generatedSteps.push({
       array: generatedSteps[generatedSteps.length - 1].array,
       highlight: [],
       description: "Array is now fully sorted!",
       level: 0,
+      tree: JSON.parse(JSON.stringify(tree)),
+      currentNode: null,
     });
 
     setSteps(generatedSteps);
@@ -113,6 +156,60 @@ const DivideConquer = () => {
 
   const currentStepData = steps[currentStep] || steps[0];
 
+  const renderTree = (node: TreeNode | undefined): JSX.Element | null => {
+    if (!node) return null;
+
+    const isCurrent = currentStepData.currentNode?.x === node.x && 
+                      currentStepData.currentNode?.y === node.y;
+    const arrayStr = node.array.join(", ");
+
+    return (
+      <g key={`${node.x}-${node.y}`}>
+        {node.children?.map((child, idx) => (
+          <line
+            key={idx}
+            x1={node.x}
+            y1={node.y + 20}
+            x2={child.x}
+            y2={child.y - 20}
+            stroke="hsl(var(--divide-conquer) / 0.4)"
+            strokeWidth="2"
+          />
+        ))}
+        <motion.g
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ 
+            opacity: 1, 
+            scale: isCurrent ? 1.1 : 1 
+          }}
+          transition={{ duration: 0.3 }}
+        >
+          <rect
+            x={node.x - 40}
+            y={node.y - 15}
+            width="80"
+            height="30"
+            rx="5"
+            fill={isCurrent ? "hsl(var(--divide-conquer))" : "hsl(var(--card))"}
+            stroke="hsl(var(--divide-conquer))"
+            strokeWidth="2"
+          />
+          <text
+            x={node.x}
+            y={node.y + 5}
+            textAnchor="middle"
+            fill={isCurrent ? "white" : "hsl(var(--divide-conquer-dark))"}
+            fontSize="10"
+            fontWeight="bold"
+          >
+            {node.array.length > 3 ? `[${node.array.length}]` : `[${arrayStr}]`}
+          </text>
+        </motion.g>
+        {node.children?.map((child) => renderTree(child))}
+      </g>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <Card className="p-8 bg-paradigm-divide-light border-paradigm-divide">
@@ -124,6 +221,14 @@ const DivideConquer = () => {
             <p className="text-sm text-muted-foreground">
               Watch how the array is recursively divided into smaller parts, then merged back together in sorted order.
             </p>
+          </div>
+
+          {/* Recursion Tree */}
+          <div className="bg-card rounded-lg border border-paradigm-divide p-4">
+            <h3 className="text-sm font-semibold text-paradigm-divide-dark mb-4">Recursion Tree</h3>
+            <svg className="w-full h-96">
+              {renderTree(currentStepData?.tree)}
+            </svg>
           </div>
 
           {/* Array Visualization */}
