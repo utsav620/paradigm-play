@@ -15,6 +15,8 @@ interface Step {
   nodes: Node[];
   currentNode: string | null;
   description: string;
+  distanceMatrix: { [key: string]: number };
+  currentLine: number | null;
 }
 
 const Greedy = () => {
@@ -23,7 +25,6 @@ const Greedy = () => {
   const [speed, setSpeed] = useState(1);
   const [steps, setSteps] = useState<Step[]>([]);
 
-  // Generate Dijkstra-like shortest path steps
   useEffect(() => {
     const nodes: Node[] = [
       { id: "A", x: 100, y: 150, distance: 0, visited: false },
@@ -35,15 +36,19 @@ const Greedy = () => {
     ];
 
     const generatedSteps: Step[] = [];
+    const distanceMatrix: { [key: string]: number } = {};
+    nodes.forEach(n => distanceMatrix[n.id] = n.distance);
+
     generatedSteps.push({
       nodes: JSON.parse(JSON.stringify(nodes)),
       currentNode: null,
       description: "Starting at node A with distance 0",
+      distanceMatrix: { ...distanceMatrix },
+      currentLine: null,
     });
 
     let currentNodes = JSON.parse(JSON.stringify(nodes));
-    
-    // Simplified Dijkstra simulation
+
     const updates = [
       { node: "A", distance: 0, desc: "Start at A (distance: 0)" },
       { node: "B", distance: 4, desc: "Update B: distance 0 + 4 = 4" },
@@ -65,16 +70,24 @@ const Greedy = () => {
       if (nodeIndex !== -1) {
         if (update.distance !== undefined) {
           currentNodes[nodeIndex].distance = update.distance;
+          distanceMatrix[update.node] = update.distance;
         }
         if (update.visit) {
           currentNodes[nodeIndex].visited = true;
         }
       }
 
+      let lineNum = null;
+      if (update.desc.includes("Start")) lineNum = 1;
+      else if (update.desc.includes("Select")) lineNum = 2;
+      else if (update.desc.includes("Update")) lineNum = 3;
+
       generatedSteps.push({
         nodes: JSON.parse(JSON.stringify(currentNodes)),
         currentNode: update.node,
         description: update.desc,
+        distanceMatrix: { ...distanceMatrix },
+        currentLine: lineNum,
       });
     });
 
@@ -82,6 +95,8 @@ const Greedy = () => {
       nodes: currentNodes,
       currentNode: null,
       description: "Shortest paths found! All nodes visited.",
+      distanceMatrix: { ...distanceMatrix },
+      currentLine: null,
     });
 
     setSteps(generatedSteps);
@@ -89,9 +104,7 @@ const Greedy = () => {
 
   useEffect(() => {
     if (isPlaying && currentStep < steps.length - 1) {
-      const timer = setTimeout(() => {
-        setCurrentStep((prev) => prev + 1);
-      }, 1000 / speed);
+      const timer = setTimeout(() => setCurrentStep((prev) => prev + 1), 1000 / speed);
       return () => clearTimeout(timer);
     } else if (currentStep >= steps.length - 1) {
       setIsPlaying(false);
@@ -109,95 +122,144 @@ const Greedy = () => {
 
   const currentStepData = steps[currentStep] || steps[0];
 
+  const pseudoCode = [
+    "dist[start] = 0, all others = ∞",
+    "while unvisited nodes exist:",
+    "  select node with min distance",
+    "  for each neighbor:",
+    "    newDist = dist[node] + edge_weight",
+    "    if newDist < dist[neighbor]:",
+    "      dist[neighbor] = newDist",
+  ];
+
   return (
     <div className="space-y-6">
       <Card className="p-8 bg-paradigm-greedy-light border-paradigm-greedy">
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold text-paradigm-greedy-dark mb-2">
-              Dijkstra's Algorithm - Greedy Approach
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Watch how the algorithm greedily selects the node with the smallest distance at each step.
-            </p>
-          </div>
+        <div className="grid grid-cols-3 gap-6">
+          {/* Left Column - Graph */}
+          <div className="col-span-2 space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-paradigm-greedy-dark mb-2">
+                Dijkstra's Algorithm - Greedy Approach
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Watch how the algorithm greedily selects the node with the smallest distance at each step.
+              </p>
+            </div>
 
-          {/* Graph Visualization */}
-          <div className="relative h-80 bg-card rounded-lg border border-paradigm-greedy p-4">
-            <svg className="absolute inset-0 w-full h-full">
-              {/* Edges with weights */}
-              <line x1="100" y1="150" x2="250" y2="80" stroke="hsl(var(--greedy) / 0.3)" strokeWidth="2" />
-              <text x="175" y="110" fill="hsl(var(--greedy-dark))" fontSize="12" fontWeight="bold">4</text>
-              
-              <line x1="100" y1="150" x2="250" y2="220" stroke="hsl(var(--greedy) / 0.3)" strokeWidth="2" />
-              <text x="175" y="195" fill="hsl(var(--greedy-dark))" fontSize="12" fontWeight="bold">2</text>
-              
-              <line x1="250" y1="80" x2="400" y2="80" stroke="hsl(var(--greedy) / 0.3)" strokeWidth="2" />
-              <text x="325" y="70" fill="hsl(var(--greedy-dark))" fontSize="12" fontWeight="bold">2</text>
-              
-              <line x1="250" y1="220" x2="400" y2="220" stroke="hsl(var(--greedy) / 0.3)" strokeWidth="2" />
-              <text x="325" y="240" fill="hsl(var(--greedy-dark))" fontSize="12" fontWeight="bold">5</text>
-              
-              <line x1="250" y1="80" x2="250" y2="220" stroke="hsl(var(--greedy) / 0.3)" strokeWidth="2" />
-              <text x="260" y="150" fill="hsl(var(--greedy-dark))" fontSize="12" fontWeight="bold">1</text>
-              
-              <line x1="400" y1="80" x2="550" y2="150" stroke="hsl(var(--greedy) / 0.3)" strokeWidth="2" />
-              <text x="475" y="110" fill="hsl(var(--greedy-dark))" fontSize="12" fontWeight="bold">2</text>
-              
-              <line x1="400" y1="220" x2="550" y2="150" stroke="hsl(var(--greedy) / 0.3)" strokeWidth="2" />
-              <text x="475" y="195" fill="hsl(var(--greedy-dark))" fontSize="12" fontWeight="bold">1</text>
-              
-              <line x1="400" y1="80" x2="400" y2="220" stroke="hsl(var(--greedy) / 0.3)" strokeWidth="2" />
-              <text x="410" y="150" fill="hsl(var(--greedy-dark))" fontSize="12" fontWeight="bold">1</text>
-            </svg>
+            {/* Graph Visualization */}
+            <div className="relative h-80 bg-card rounded-lg border border-paradigm-greedy p-4">
+              <svg className="absolute inset-0 w-full h-full">
+                {/* Edges with weights */}
+                <line x1="100" y1="150" x2="250" y2="80" stroke="hsl(var(--greedy) / 0.3)" strokeWidth="2" />
+                <text x="175" y="110" fill="hsl(var(--greedy-dark))" fontSize="12" fontWeight="bold">4</text>
+                <line x1="100" y1="150" x2="250" y2="220" stroke="hsl(var(--greedy) / 0.3)" strokeWidth="2" />
+                <text x="175" y="195" fill="hsl(var(--greedy-dark))" fontSize="12" fontWeight="bold">2</text>
+                <line x1="250" y1="80" x2="400" y2="80" stroke="hsl(var(--greedy) / 0.3)" strokeWidth="2" />
+                <text x="325" y="70" fill="hsl(var(--greedy-dark))" fontSize="12" fontWeight="bold">2</text>
+                <line x1="250" y1="220" x2="400" y2="220" stroke="hsl(var(--greedy) / 0.3)" strokeWidth="2" />
+                <text x="325" y="240" fill="hsl(var(--greedy-dark))" fontSize="12" fontWeight="bold">5</text>
+                <line x1="250" y1="80" x2="250" y2="220" stroke="hsl(var(--greedy) / 0.3)" strokeWidth="2" />
+                <text x="260" y="150" fill="hsl(var(--greedy-dark))" fontSize="12" fontWeight="bold">1</text>
+                <line x1="400" y1="80" x2="550" y2="150" stroke="hsl(var(--greedy) / 0.3)" strokeWidth="2" />
+                <text x="475" y="110" fill="hsl(var(--greedy-dark))" fontSize="12" fontWeight="bold">2</text>
+                <line x1="400" y1="220" x2="550" y2="150" stroke="hsl(var(--greedy) / 0.3)" strokeWidth="2" />
+                <text x="475" y="195" fill="hsl(var(--greedy-dark))" fontSize="12" fontWeight="bold">1</text>
+                <line x1="400" y1="80" x2="400" y2="220" stroke="hsl(var(--greedy) / 0.3)" strokeWidth="2" />
+                <text x="410" y="150" fill="hsl(var(--greedy-dark))" fontSize="12" fontWeight="bold">1</text>
+              </svg>
 
-            <AnimatePresence>
-              {currentStepData?.nodes.map((node) => {
-                const isCurrent = node.id === currentStepData.currentNode;
-                const isVisited = node.visited;
+              <AnimatePresence>
+                {currentStepData?.nodes.map((node) => {
+                  const isCurrent = node.id === currentStepData.currentNode;
+                  const isVisited = node.visited;
 
-                return (
-                  <motion.div
-                    key={node.id}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute"
-                    style={{ left: node.x - 30, top: node.y - 30 }}
-                  >
+                  return (
                     <motion.div
-                      animate={{
-                        backgroundColor: isCurrent
-                          ? "hsl(var(--greedy))"
-                          : isVisited
-                          ? "hsl(var(--greedy-dark))"
-                          : "hsl(var(--card))",
-                        scale: isCurrent ? 1.2 : 1,
-                      }}
-                      transition={{ duration: 0.3 }}
-                      className="w-16 h-16 rounded-full border-2 border-paradigm-greedy flex flex-col items-center justify-center shadow-lg"
+                      key={node.id}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute"
+                      style={{ left: node.x - 30, top: node.y - 30 }}
                     >
-                      <span className="text-sm font-bold">{node.id}</span>
-                      <span className="text-xs">
-                        {node.distance === Infinity ? "∞" : node.distance}
-                      </span>
+                      <motion.div
+                        animate={{
+                          backgroundColor: isCurrent
+                            ? "hsl(var(--greedy))"
+                            : isVisited
+                            ? "hsl(var(--greedy-dark))"
+                            : "hsl(var(--card))",
+                          scale: isCurrent ? 1.2 : 1,
+                        }}
+                        transition={{ duration: 0.3 }}
+                        className="w-16 h-16 rounded-full border-2 border-paradigm-greedy flex flex-col items-center justify-center shadow-lg"
+                      >
+                        <span className="text-sm font-bold">{node.id}</span>
+                        <span className="text-xs">
+                          {node.distance === Infinity ? "∞" : node.distance}
+                        </span>
+                      </motion.div>
                     </motion.div>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
+
+            {/* Step Description */}
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 bg-card rounded-lg border border-paradigm-greedy"
+            >
+              <p className="text-center text-paradigm-greedy-dark font-medium">
+                {currentStepData?.description}
+              </p>
+            </motion.div>
           </div>
 
-          {/* Step Description */}
-          <motion.div
-            key={currentStep}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="p-4 bg-card rounded-lg border border-paradigm-greedy"
-          >
-            <p className="text-center text-paradigm-greedy-dark font-medium">
-              {currentStepData?.description}
-            </p>
-          </motion.div>
+          {/* Right Column - Pseudo Code & Distance Matrix */}
+          <div className="space-y-6">
+            <div className="bg-card rounded-lg border border-paradigm-greedy p-4 sticky top-6">
+              <h3 className="text-sm font-semibold text-paradigm-greedy-dark mb-4">Pseudo Code</h3>
+              <div className="font-mono text-xs space-y-2">
+                {pseudoCode.map((line, idx) => (
+                  <motion.div
+                    key={idx}
+                    className={`p-2 rounded transition-colors ${
+                      currentStepData?.currentLine === idx + 1
+                        ? "bg-paradigm-greedy text-white font-bold"
+                        : "bg-muted/30 text-foreground"
+                    }`}
+                    animate={{
+                      scale: currentStepData?.currentLine === idx + 1 ? 1.02 : 1,
+                    }}
+                  >
+                    {line}
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-card rounded-lg border border-paradigm-greedy p-4">
+              <h3 className="text-sm font-semibold text-paradigm-greedy-dark mb-4">Distance Table</h3>
+              <div className="space-y-2">
+                {Object.entries(currentStepData?.distanceMatrix || {}).map(([node, dist]) => (
+                  <div
+                    key={node}
+                    className={`flex justify-between items-center p-2 rounded text-sm font-mono ${
+                      currentStepData?.currentNode === node
+                        ? "bg-paradigm-greedy text-white font-bold"
+                        : "bg-muted/30"
+                    }`}
+                  >
+                    <span>{node}</span>
+                    <span>{dist === Infinity ? "∞" : dist}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </Card>
 

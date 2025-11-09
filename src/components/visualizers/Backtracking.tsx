@@ -17,6 +17,7 @@ interface Step {
   currentPath: string;
   description: string;
   permutations: string[];
+  currentLine: number | null;
 }
 
 const Backtracking = () => {
@@ -81,6 +82,7 @@ const Backtracking = () => {
         currentPath: node.value,
         description: path.length === 0 ? "Start: empty permutation" : `Exploring: ${node.value}`,
         permutations: [...permutations],
+        currentLine: 1,
       });
 
       if (node.isComplete) {
@@ -90,6 +92,7 @@ const Backtracking = () => {
           currentPath: node.value,
           description: `✓ Found permutation: ${node.value}`,
           permutations: [...permutations],
+          currentLine: 2,
         });
 
         generatedSteps.push({
@@ -97,6 +100,7 @@ const Backtracking = () => {
           currentPath: node.value,
           description: `Backtracking from ${node.value}...`,
           permutations: [...permutations],
+          currentLine: 3,
         });
         return;
       }
@@ -113,6 +117,7 @@ const Backtracking = () => {
           currentPath: node.value,
           description: `Backtracking from ${node.value}...`,
           permutations: [...permutations],
+          currentLine: 3,
         });
       }
     };
@@ -122,6 +127,7 @@ const Backtracking = () => {
       currentPath: "",
       description: "Generating all permutations of [A, B, C]",
       permutations: [],
+      currentLine: null,
     });
 
     traverse(tree, []);
@@ -131,6 +137,7 @@ const Backtracking = () => {
       currentPath: "",
       description: `Complete! Found ${permutations.length} permutations`,
       permutations: [...permutations],
+      currentLine: null,
     });
 
     setSteps(generatedSteps);
@@ -157,6 +164,17 @@ const Backtracking = () => {
   };
 
   const currentStepData = steps[currentStep] || steps[0];
+
+  const pseudoCode = [
+    "for each element in choices:",
+    "  if element not in path:",
+    "    add element to path",
+    "    if path is complete:",
+    "      save solution",
+    "    else:",
+    "      recurse with remaining choices",
+    "    remove element from path  // Backtrack",
+  ];
 
   const renderTree = (node: TreeNode | undefined): JSX.Element | null => {
     if (!node) return null;
@@ -216,53 +234,80 @@ const Backtracking = () => {
   return (
     <div className="space-y-6">
       <Card className="p-8 bg-paradigm-backtrack-light border-paradigm-backtrack">
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold text-paradigm-backtrack-dark mb-2">
-              Permutation Generation - Backtracking
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Watch how the algorithm explores branches and backtracks to find all permutations.
-            </p>
+        <div className="grid grid-cols-3 gap-6">
+          {/* Left Column - Visualizations */}
+          <div className="col-span-2 space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-paradigm-backtrack-dark mb-2">
+                Permutation Generation - Backtracking
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Watch how the algorithm explores branches and backtracks to find all permutations.
+              </p>
+            </div>
+
+            {/* Tree Visualization */}
+            <div className="bg-card rounded-lg border border-paradigm-backtrack p-4 overflow-x-auto">
+              <svg className="w-full h-96 min-w-[800px]">
+                {renderTree(currentStepData?.tree)}
+              </svg>
+            </div>
+
+            {/* Found Permutations */}
+            <div className="bg-card rounded-lg border border-paradigm-backtrack p-4">
+              <h3 className="text-sm font-semibold text-paradigm-backtrack-dark mb-3">
+                Found Permutations ({currentStepData?.permutations.length || 0})
+              </h3>
+              <div className="flex gap-2 flex-wrap">
+                {currentStepData?.permutations.map((perm, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="px-3 py-1 bg-paradigm-backtrack-light border border-paradigm-backtrack rounded-md text-sm font-mono text-paradigm-backtrack-dark"
+                  >
+                    {perm}
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            {/* Step Description */}
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 bg-card rounded-lg border border-paradigm-backtrack"
+            >
+              <p className="text-center text-paradigm-backtrack-dark font-medium">
+                {currentStepData?.description}
+              </p>
+            </motion.div>
           </div>
 
-          {/* Tree Visualization */}
-          <div className="bg-card rounded-lg border border-paradigm-backtrack p-4 overflow-x-auto">
-            <svg className="w-full h-96 min-w-[800px]">
-              {renderTree(currentStepData?.tree)}
-            </svg>
-          </div>
-
-          {/* Found Permutations */}
-          <div className="bg-card rounded-lg border border-paradigm-backtrack p-4">
-            <h3 className="text-sm font-semibold text-paradigm-backtrack-dark mb-3">
-              Found Permutations ({currentStepData?.permutations.length || 0})
-            </h3>
-            <div className="flex gap-2 flex-wrap">
-              {currentStepData?.permutations.map((perm, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="px-3 py-1 bg-paradigm-backtrack-light border border-paradigm-backtrack rounded-md text-sm font-mono text-paradigm-backtrack-dark"
-                >
-                  {perm}
-                </motion.div>
-              ))}
+          {/* Right Column - Pseudo Code */}
+          <div className="space-y-6">
+            <div className="bg-card rounded-lg border border-paradigm-backtrack p-4 sticky top-6">
+              <h3 className="text-sm font-semibold text-paradigm-backtrack-dark mb-4">Pseudo Code</h3>
+              <div className="font-mono text-xs space-y-2">
+                {pseudoCode.map((line, idx) => (
+                  <motion.div
+                    key={idx}
+                    className={`p-2 rounded transition-colors ${
+                      currentStepData?.currentLine === idx + 1
+                        ? "bg-paradigm-backtrack text-white font-bold"
+                        : "bg-muted/30 text-foreground"
+                    }`}
+                    animate={{
+                      scale: currentStepData?.currentLine === idx + 1 ? 1.02 : 1,
+                    }}
+                  >
+                    {line}
+                  </motion.div>
+                ))}
+              </div>
             </div>
           </div>
-
-          {/* Step Description */}
-          <motion.div
-            key={currentStep}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="p-4 bg-card rounded-lg border border-paradigm-backtrack"
-          >
-            <p className="text-center text-paradigm-backtrack-dark font-medium">
-              {currentStepData?.description}
-            </p>
-          </motion.div>
         </div>
       </Card>
 

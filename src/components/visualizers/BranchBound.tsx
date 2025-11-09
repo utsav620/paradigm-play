@@ -21,6 +21,7 @@ interface Step {
   currentRoute: string[] | null;
   bestCost: number;
   description: string;
+  currentLine: number | null;
 }
 
 const BranchBound = () => {
@@ -61,36 +62,34 @@ const BranchBound = () => {
       currentRoute: null,
       bestCost: Infinity,
       description: "Starting TSP with 4 cities. Finding optimal tour...",
+      currentLine: null,
     });
 
-    // Simulate exploring routes with branch and bound
     const exploreRoutes = [
       { path: ["A", "B"], cost: 8, shouldPrune: false },
       { path: ["A", "B", "C"], cost: 14, shouldPrune: false },
       { path: ["A", "B", "C", "D", "A"], cost: 31, shouldPrune: false },
       { path: ["A", "B", "D"], cost: 17, shouldPrune: false },
-      { path: ["A", "B", "D", "C", "A"], cost: 36, shouldPrune: true }, // Pruned (> 31)
+      { path: ["A", "B", "D", "C", "A"], cost: 36, shouldPrune: true },
       { path: ["A", "C"], cost: 12, shouldPrune: false },
       { path: ["A", "C", "B"], cost: 18, shouldPrune: false },
-      { path: ["A", "C", "B", "D", "A"], cost: 37, shouldPrune: true }, // Pruned (> 31)
+      { path: ["A", "C", "B", "D", "A"], cost: 37, shouldPrune: true },
       { path: ["A", "C", "D"], cost: 19, shouldPrune: false },
-      { path: ["A", "C", "D", "B", "A"], cost: 35, shouldPrune: true }, // Pruned (> 31)
+      { path: ["A", "C", "D", "B", "A"], cost: 35, shouldPrune: true },
       { path: ["A", "D"], cost: 10, shouldPrune: false },
       { path: ["A", "D", "B"], cost: 19, shouldPrune: false },
-      { path: ["A", "D", "B", "C", "A"], cost: 37, shouldPrune: true }, // Pruned (> 31)
+      { path: ["A", "D", "B", "C", "A"], cost: 37, shouldPrune: true },
       { path: ["A", "D", "C"], cost: 17, shouldPrune: false },
-      { path: ["A", "D", "C", "B", "A"], cost: 31, shouldPrune: false }, // Same as best
+      { path: ["A", "D", "C", "B", "A"], cost: 31, shouldPrune: false },
     ];
 
     exploreRoutes.forEach((routeData) => {
       const isComplete = routeData.path.length === 5;
       const cost = routeData.cost;
 
-      if (isComplete && !routeData.shouldPrune) {
-        if (cost < bestCost) {
-          bestCost = cost;
-          routes.forEach((r) => (r.isOptimal = false));
-        }
+      if (isComplete && !routeData.shouldPrune && cost < bestCost) {
+        bestCost = cost;
+        routes.forEach((r) => (r.isOptimal = false));
       }
 
       const isPruned = routeData.shouldPrune || (isComplete && cost > bestCost);
@@ -102,6 +101,11 @@ const BranchBound = () => {
       };
       routes.push(route);
 
+      let lineNum: number | null = null;
+      if (isPruned) lineNum = 3;
+      else if (isComplete) lineNum = 2;
+      else lineNum = 1;
+
       generatedSteps.push({
         routes: [...routes],
         currentRoute: routeData.path,
@@ -111,6 +115,7 @@ const BranchBound = () => {
           : isComplete
           ? `✓ Complete tour: ${routeData.path.join("→")} (cost: ${cost})`
           : `Exploring: ${routeData.path.join("→")} (cost so far: ${cost})`,
+        currentLine: lineNum,
       });
     });
 
@@ -119,6 +124,7 @@ const BranchBound = () => {
       currentRoute: null,
       bestCost,
       description: `Optimal tour found with cost: ${bestCost}`,
+      currentLine: null,
     });
 
     setSteps(generatedSteps);
@@ -126,9 +132,7 @@ const BranchBound = () => {
 
   useEffect(() => {
     if (isPlaying && currentStep < steps.length - 1) {
-      const timer = setTimeout(() => {
-        setCurrentStep((prev) => prev + 1);
-      }, 1000 / speed);
+      const timer = setTimeout(() => setCurrentStep((prev) => prev + 1), 1000 / speed);
       return () => clearTimeout(timer);
     } else if (currentStep >= steps.length - 1) {
       setIsPlaying(false);
@@ -146,157 +150,175 @@ const BranchBound = () => {
 
   const currentStepData = steps[currentStep] || steps[0];
 
+  const pseudoCode = [
+    "explore(path, cost):",
+    "  if path is complete:",
+    "    update best_cost if cost < best_cost",
+    "  if cost >= best_cost:",
+    "    prune this branch  // Bound",
+    "  for each unvisited city:",
+    "    explore(path + city, cost + edge_cost)",
+  ];
+
   return (
     <div className="space-y-6">
       <Card className="p-8 bg-paradigm-branch-light border-paradigm-branch">
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold text-paradigm-branch-dark mb-2">
-              Traveling Salesman - Branch & Bound
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Watch how the algorithm prunes branches that exceed the current best solution.
-            </p>
-          </div>
+        <div className="grid grid-cols-3 gap-6">
+          {/* Left Column - Visualizations */}
+          <div className="col-span-2 space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-paradigm-branch-dark mb-2">
+                Traveling Salesman - Branch & Bound
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Watch how the algorithm prunes branches that exceed the current best solution.
+              </p>
+            </div>
 
-          {/* Graph Visualization */}
-          <div className="bg-card rounded-lg border border-paradigm-branch p-4">
-            <svg className="w-full h-80">
-              {/* Draw all edges with distances */}
-              {cities.map((city1, i) =>
-                cities.slice(i + 1).map((city2) => {
-                  const dist = getDistance(city1.id, city2.id);
-                  const midX = (city1.x + city2.x) / 2;
-                  const midY = (city1.y + city2.y) / 2;
-                  
-                  // Calculate offset for label positioning to avoid overlap
-                  const dx = city2.x - city1.x;
-                  const dy = city2.y - city1.y;
-                  const length = Math.sqrt(dx * dx + dy * dy);
-                  const offsetX = (-dy / length) * 15;
-                  const offsetY = (dx / length) * 15;
+            {/* Graph Visualization */}
+            <div className="bg-card rounded-lg border border-paradigm-branch p-4">
+              <svg className="w-full h-80">
+                {cities.map((city1, i) =>
+                  cities.slice(i + 1).map((city2) => {
+                    const dist = getDistance(city1.id, city2.id);
+                    const midX = (city1.x + city2.x) / 2;
+                    const midY = (city1.y + city2.y) / 2;
+                    const dx = city2.x - city1.x;
+                    const dy = city2.y - city1.y;
+                    const length = Math.sqrt(dx * dx + dy * dy);
+                    const offsetX = (-dy / length) * 15;
+                    const offsetY = (dx / length) * 15;
+                    const isInCurrentRoute =
+                      currentStepData?.currentRoute?.includes(city1.id) &&
+                      currentStepData?.currentRoute?.includes(city2.id);
+                    return (
+                      <g key={`${city1.id}-${city2.id}`}>
+                        <line
+                          x1={city1.x}
+                          y1={city1.y}
+                          x2={city2.x}
+                          y2={city2.y}
+                          stroke={isInCurrentRoute ? "hsl(var(--branch-bound))" : "hsl(var(--branch-bound) / 0.2)"}
+                          strokeWidth={isInCurrentRoute ? "3" : "1"}
+                        />
+                        <rect
+                          x={midX + offsetX - 10}
+                          y={midY + offsetY - 8}
+                          width="20"
+                          height="16"
+                          fill="hsl(var(--card))"
+                          stroke="hsl(var(--border))"
+                          strokeWidth="1"
+                          rx="3"
+                        />
+                        <text
+                          x={midX + offsetX}
+                          y={midY + offsetY + 4}
+                          textAnchor="middle"
+                          fill="hsl(var(--branch-bound-dark))"
+                          fontSize="11"
+                          fontWeight="bold"
+                        >
+                          {dist}
+                        </text>
+                      </g>
+                    );
+                  })
+                )}
 
-                  const isInCurrentRoute =
-                    currentStepData?.currentRoute &&
-                    currentStepData.currentRoute.includes(city1.id) &&
-                    currentStepData.currentRoute.includes(city2.id);
-
+                {cities.map((city) => {
+                  const isInCurrentRoute = currentStepData?.currentRoute?.includes(city.id) || false;
                   return (
-                    <g key={`${city1.id}-${city2.id}`}>
-                      <line
-                        x1={city1.x}
-                        y1={city1.y}
-                        x2={city2.x}
-                        y2={city2.y}
-                        stroke={
-                          isInCurrentRoute
-                            ? "hsl(var(--branch-bound))"
-                            : "hsl(var(--branch-bound) / 0.2)"
-                        }
-                        strokeWidth={isInCurrentRoute ? "3" : "1"}
-                      />
-                      <rect
-                        x={midX + offsetX - 10}
-                        y={midY + offsetY - 8}
-                        width="20"
-                        height="16"
-                        fill="hsl(var(--card))"
-                        stroke="hsl(var(--border))"
-                        strokeWidth="1"
-                        rx="3"
+                    <g key={city.id}>
+                      <circle
+                        cx={city.x}
+                        cy={city.y}
+                        r="25"
+                        fill={isInCurrentRoute ? "hsl(var(--branch-bound))" : "hsl(var(--card))"}
+                        stroke="hsl(var(--branch-bound))"
+                        strokeWidth="2"
                       />
                       <text
-                        x={midX + offsetX}
-                        y={midY + offsetY + 4}
+                        x={city.x}
+                        y={city.y + 5}
                         textAnchor="middle"
-                        fill="hsl(var(--branch-bound-dark))"
-                        fontSize="11"
+                        fill={isInCurrentRoute ? "white" : "hsl(var(--foreground))"}
+                        fontSize="16"
                         fontWeight="bold"
                       >
-                        {dist}
+                        {city.id}
                       </text>
                     </g>
                   );
-                })
-              )}
+                })}
+              </svg>
+            </div>
 
-              {/* Draw cities */}
-              {cities.map((city) => {
-                const isInCurrentRoute =
-                  currentStepData?.currentRoute?.includes(city.id) || false;
-
-                return (
-                  <g key={city.id}>
-                    <circle
-                      cx={city.x}
-                      cy={city.y}
-                      r="25"
-                      fill={
-                        isInCurrentRoute
-                          ? "hsl(var(--branch-bound))"
-                          : "hsl(var(--card))"
-                      }
-                      stroke="hsl(var(--branch-bound))"
-                      strokeWidth="2"
-                    />
-                    <text
-                      x={city.x}
-                      y={city.y + 5}
-                      textAnchor="middle"
-                      fill={isInCurrentRoute ? "white" : "hsl(var(--foreground))"}
-                      fontSize="16"
-                      fontWeight="bold"
-                    >
-                      {city.id}
-                    </text>
-                  </g>
-                );
-              })}
-            </svg>
-          </div>
-
-          {/* Routes Explored */}
-          <div className="bg-card rounded-lg border border-paradigm-branch p-4">
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="text-sm font-semibold text-paradigm-branch-dark">
-                Routes Explored ({currentStepData?.routes.length || 0})
-              </h3>
-              <div className="text-xs text-paradigm-branch-dark font-mono">
-                Best Cost: {currentStepData?.bestCost === Infinity ? "∞" : currentStepData?.bestCost}
+            {/* Routes Explored */}
+            <div className="bg-card rounded-lg border border-paradigm-branch p-4">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-sm font-semibold text-paradigm-branch-dark">
+                  Routes Explored ({currentStepData?.routes.length || 0})
+                </h3>
+                <div className="text-xs text-paradigm-branch-dark font-mono">
+                  Best Cost: {currentStepData?.bestCost === Infinity ? "∞" : currentStepData?.bestCost}
+                </div>
+              </div>
+              <div className="max-h-32 overflow-y-auto space-y-1">
+                {currentStepData?.routes.map((route, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className={`px-3 py-1 rounded-md text-xs font-mono flex justify-between ${
+                      route.isOptimal
+                        ? "bg-paradigm-branch text-white font-bold"
+                        : route.isPruned
+                        ? "bg-muted text-muted-foreground line-through"
+                        : "bg-paradigm-branch-light border border-paradigm-branch text-paradigm-branch-dark"
+                    }`}
+                  >
+                    <span>{route.path.join("→")}</span>
+                    <span>{route.cost}</span>
+                  </motion.div>
+                ))}
               </div>
             </div>
-            <div className="max-h-32 overflow-y-auto space-y-1">
-              {currentStepData?.routes.map((route, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className={`px-3 py-1 rounded-md text-xs font-mono flex justify-between ${
-                    route.isOptimal
-                      ? "bg-paradigm-branch text-white font-bold"
-                      : route.isPruned
-                      ? "bg-muted text-muted-foreground line-through"
-                      : "bg-paradigm-branch-light border border-paradigm-branch text-paradigm-branch-dark"
-                  }`}
-                >
-                  <span>{route.path.join("→")}</span>
-                  <span>{route.cost}</span>
-                </motion.div>
-              ))}
-            </div>
+
+            {/* Step Description */}
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 bg-card rounded-lg border border-paradigm-branch"
+            >
+              <p className="text-center text-paradigm-branch-dark font-medium">
+                {currentStepData?.description}
+              </p>
+            </motion.div>
           </div>
 
-          {/* Step Description */}
-          <motion.div
-            key={currentStep}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="p-4 bg-card rounded-lg border border-paradigm-branch"
-          >
-            <p className="text-center text-paradigm-branch-dark font-medium">
-              {currentStepData?.description}
-            </p>
-          </motion.div>
+          {/* Right Column - Pseudo Code */}
+          <div className="space-y-6">
+            <div className="bg-card rounded-lg border border-paradigm-branch p-4 sticky top-6">
+              <h3 className="text-sm font-semibold text-paradigm-branch-dark mb-4">Pseudo Code</h3>
+              <div className="font-mono text-xs space-y-2">
+                {pseudoCode.map((line, idx) => (
+                  <motion.div
+                    key={idx}
+                    className={`p-2 rounded transition-colors ${
+                      currentStepData?.currentLine === idx + 1
+                        ? "bg-paradigm-branch text-white font-bold"
+                        : "bg-muted/30 text-foreground"
+                    }`}
+                    animate={{ scale: currentStepData?.currentLine === idx + 1 ? 1.02 : 1 }}
+                  >
+                    {line}
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </Card>
 

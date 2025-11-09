@@ -8,8 +8,8 @@ interface TreeNode {
   computed: boolean;
   x: number;
   y: number;
-  isMemoHit?: boolean; // Whether this specific node was a memo hit
-  isRawCalc?: boolean; // Whether this specific node was a raw calculation
+  isMemoHit?: boolean;
+  isRawCalc?: boolean;
   children?: TreeNode[];
 }
 
@@ -19,6 +19,7 @@ interface Step {
   tree: TreeNode;
   description: string;
   memoHits: Set<number>;
+  currentLine: number | null;
 }
 
 const DynamicProgramming = () => {
@@ -27,32 +28,28 @@ const DynamicProgramming = () => {
   const [speed, setSpeed] = useState(1);
   const [steps, setSteps] = useState<Step[]>([]);
 
-  const n = 7; // Calculate Fibonacci up to F(7) for better tree visibility
+  const n = 5; // Compute Fibonacci up to F(5)
 
-  // Generate Fibonacci Memoization steps
   useEffect(() => {
     const generatedSteps: Step[] = [];
     const memo: (number | null)[] = Array(n + 1).fill(null);
     const memoHits = new Set<number>();
 
-    // Build recursion tree structure
     const buildTree = (num: number, x: number, y: number, width: number): TreeNode => {
-      if (num <= 1) {
-        return { value: num, computed: false, x, y };
-      }
+      if (num <= 1) return { value: num, computed: false, x, y };
       return {
         value: num,
         computed: false,
         x,
         y,
         children: [
-          buildTree(num - 1, x - width, y + 120, width / 2),
-          buildTree(num - 2, x + width, y + 120, width / 2),
+          buildTree(num - 1, x - width, y + 80, width / 2),
+          buildTree(num - 2, x + width, y + 80, width / 2),
         ],
       };
     };
 
-    const tree = buildTree(n, 500, 50, 250);
+    const tree = buildTree(n, 400, 50, 120);
 
     generatedSteps.push({
       memo: [...memo],
@@ -60,17 +57,14 @@ const DynamicProgramming = () => {
       tree: JSON.parse(JSON.stringify(tree)),
       description: `Computing Fibonacci(${n}) using memoization`,
       memoHits: new Set(memoHits),
+      currentLine: null,
     });
 
-    // Mark nodes in tree during execution
     const markNode = (node: TreeNode | undefined, targetValue: number, isMemo: boolean): boolean => {
       if (!node) return false;
       if (node.value === targetValue && !node.isRawCalc && !node.isMemoHit) {
-        if (isMemo) {
-          node.isMemoHit = true;
-        } else {
-          node.isRawCalc = true;
-        }
+        if (isMemo) node.isMemoHit = true;
+        else node.isRawCalc = true;
         return true;
       }
       if (node.children) {
@@ -81,7 +75,6 @@ const DynamicProgramming = () => {
       return false;
     };
 
-    // Simulate memoization computation
     const computeFib = (num: number): number => {
       generatedSteps.push({
         memo: [...memo],
@@ -89,35 +82,38 @@ const DynamicProgramming = () => {
         tree: JSON.parse(JSON.stringify(tree)),
         description: `Checking F(${num})...`,
         memoHits: new Set(memoHits),
+        currentLine: 1,
       });
 
       if (memo[num] !== null) {
         memoHits.add(num);
-        markNode(tree, num, true); // Mark as memoization hit
+        markNode(tree, num, true);
         generatedSteps.push({
           memo: [...memo],
           currentIndex: num,
           tree: JSON.parse(JSON.stringify(tree)),
           description: `F(${num}) already computed: ${memo[num]} (from memo) ✨`,
           memoHits: new Set(memoHits),
+          currentLine: 2,
         });
         return memo[num]!;
       }
 
       if (num <= 1) {
         memo[num] = num;
-        markNode(tree, num, false); // Mark as raw calculation
+        markNode(tree, num, false);
         generatedSteps.push({
           memo: [...memo],
           currentIndex: num,
           tree: JSON.parse(JSON.stringify(tree)),
           description: `Base case: F(${num}) = ${num}`,
           memoHits: new Set(memoHits),
+          currentLine: 3,
         });
         return num;
       }
 
-      markNode(tree, num, false); // Mark as raw calculation before computing
+      markNode(tree, num, false);
       const fib1 = computeFib(num - 1);
       const fib2 = computeFib(num - 2);
       memo[num] = fib1 + fib2;
@@ -128,6 +124,7 @@ const DynamicProgramming = () => {
         tree: JSON.parse(JSON.stringify(tree)),
         description: `F(${num}) = F(${num - 1}) + F(${num - 2}) = ${fib1} + ${fib2} = ${memo[num]}`,
         memoHits: new Set(memoHits),
+        currentLine: 4,
       });
 
       return memo[num]!;
@@ -141,6 +138,7 @@ const DynamicProgramming = () => {
       tree: JSON.parse(JSON.stringify(tree)),
       description: `Complete! F(${n}) = ${memo[n]}`,
       memoHits: new Set(memoHits),
+      currentLine: null,
     });
 
     setSteps(generatedSteps);
@@ -148,9 +146,7 @@ const DynamicProgramming = () => {
 
   useEffect(() => {
     if (isPlaying && currentStep < steps.length - 1) {
-      const timer = setTimeout(() => {
-        setCurrentStep((prev) => prev + 1);
-      }, 1000 / speed);
+      const timer = setTimeout(() => setCurrentStep(prev => prev + 1), 1000 / speed);
       return () => clearTimeout(timer);
     } else if (currentStep >= steps.length - 1) {
       setIsPlaying(false);
@@ -159,8 +155,8 @@ const DynamicProgramming = () => {
 
   const handlePlay = () => setIsPlaying(true);
   const handlePause = () => setIsPlaying(false);
-  const handleNext = () => setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
-  const handlePrevious = () => setCurrentStep((prev) => Math.max(prev - 1, 0));
+  const handleNext = () => setCurrentStep(prev => Math.min(prev + 1, steps.length - 1));
+  const handlePrevious = () => setCurrentStep(prev => Math.max(prev - 1, 0));
   const handleReset = () => {
     setCurrentStep(0);
     setIsPlaying(false);
@@ -172,18 +168,11 @@ const DynamicProgramming = () => {
     if (!node) return null;
 
     const isCurrent = node.value === currentIdx;
-    
-    // Determine color based on node's execution history
     let fillColor;
-    if (isCurrent) {
-      fillColor = "hsl(var(--dynamic-prog))"; // Bright purple for current node being processed
-    } else if (node.isMemoHit) {
-      fillColor = "hsl(43, 96%, 56%)"; // Yellow for memoization hits (retrieved from cache)
-    } else if (node.isRawCalc) {
-      fillColor = "hsl(var(--dynamic-prog-dark))"; // Dark purple for raw calculations (computed fresh)
-    } else {
-      fillColor = "hsl(var(--card))"; // Gray for not yet accessed
-    }
+    if (isCurrent) fillColor = "hsl(var(--dynamic-prog))";
+    else if (node.isMemoHit) fillColor = "hsl(43, 96%, 56%)";
+    else if (node.isRawCalc) fillColor = "hsl(var(--dynamic-prog-dark))";
+    else fillColor = "hsl(var(--card))";
 
     return (
       <g key={`${node.x}-${node.y}-${node.value}`}>
@@ -206,111 +195,133 @@ const DynamicProgramming = () => {
           <circle
             cx={node.x}
             cy={node.y}
-            r="20"
+            r={20}
             fill={fillColor}
             stroke="hsl(var(--dynamic-prog))"
-            strokeWidth="2"
+            strokeWidth={2}
           />
           <text
             x={node.x}
             y={node.y + 5}
             textAnchor="middle"
             fill="white"
-            fontSize="12"
+            fontSize={12}
             fontWeight="bold"
           >
             {node.value}
           </text>
         </motion.g>
-        {node.children?.map((child) => renderTree(child, currentIdx))}
+        {node.children?.map(child => renderTree(child, currentIdx))}
       </g>
     );
   };
 
+  const pseudoCode = [
+    "if memo[n] is not null:",
+    "  return memo[n]  // Memoization hit",
+    "if n <= 1: return n  // Base case",
+    "memo[n] = fib(n-1) + fib(n-2)  // Compute and store",
+  ];
+
   return (
     <div className="space-y-6">
       <Card className="p-8 bg-paradigm-dynamic-light border-paradigm-dynamic">
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold text-paradigm-dynamic-dark mb-2">
-              Fibonacci - Dynamic Programming (Memoization)
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Watch the recursion tree and see how memoization avoids redundant calculations.
-            </p>
-          </div>
+        <div className="grid grid-cols-3 gap-6">
+          {/* Left Column - Tree & Memo Table */}
+          <div className="col-span-2 space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-paradigm-dynamic-dark mb-2">
+                Fibonacci - Dynamic Programming (Memoization)
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Watch the recursion tree and see how memoization avoids redundant calculations.
+              </p>
+            </div>
 
-          {/* Recursion Tree */}
-          <div className="bg-card rounded-lg border border-paradigm-dynamic p-4">
-            <h3 className="text-sm font-semibold text-paradigm-dynamic-dark mb-4">Recursion Tree</h3>
-            <svg className="w-full h-[900px]" viewBox="0 0 1000 900" preserveAspectRatio="xMidYMid meet">
-              {renderTree(currentStepData?.tree, currentStepData?.currentIndex)}
-            </svg>
-          </div>
+            <div className="bg-card rounded-lg border border-paradigm-dynamic p-4">
+              <h3 className="text-sm font-semibold text-paradigm-dynamic-dark mb-4">Recursion Tree</h3>
+              <svg className="w-full h-96" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+                {renderTree(currentStepData?.tree, currentStepData?.currentIndex)}
+              </svg>
+            </div>
 
-          {/* Memoization Table */}
-          <div className="bg-card rounded-lg border border-paradigm-dynamic p-4">
-            <h3 className="text-sm font-semibold text-paradigm-dynamic-dark mb-4">
-              Memoization Array (DP Table)
-            </h3>
-            <div className="flex gap-2 justify-center flex-wrap">
-              {currentStepData?.memo.map((value, index) => {
-                const isCurrent = currentStepData.currentIndex === index;
-
-                return (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{
-                      opacity: value !== null ? 1 : 0.3,
-                      scale: isCurrent ? 1.1 : 1,
-                    }}
-                    transition={{ duration: 0.3 }}
-                    className="flex flex-col items-center gap-2"
-                  >
-                    <span className="text-xs text-muted-foreground font-mono">F({index})</span>
-                    <div
-                      className={`w-14 h-14 rounded-lg flex items-center justify-center font-bold text-sm border-2 transition-colors ${
-                        isCurrent
-                          ? "bg-paradigm-dynamic border-paradigm-dynamic text-white"
-                          : value !== null
-                          ? "bg-paradigm-dynamic-light border-paradigm-dynamic text-paradigm-dynamic-dark"
-                          : "bg-muted border-border text-muted-foreground"
-                      }`}
+            <div className="bg-card rounded-lg border border-paradigm-dynamic p-4">
+              <h3 className="text-sm font-semibold text-paradigm-dynamic-dark mb-4">Memoization Array (DP Table)</h3>
+              <div className="flex gap-2 justify-center flex-wrap">
+                {currentStepData?.memo.map((value, index) => {
+                  const isCurrent = currentStepData.currentIndex === index;
+                  return (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: value !== null ? 1 : 0.3, scale: isCurrent ? 1.1 : 1 }}
+                      transition={{ duration: 0.3 }}
+                      className="flex flex-col items-center gap-2"
                     >
-                      {value !== null ? value : "-"}
-                    </div>
+                      <span className="text-xs text-muted-foreground font-mono">F({index})</span>
+                      <div
+                        className={`w-14 h-14 rounded-lg flex items-center justify-center font-bold text-sm border-2 transition-colors ${
+                          isCurrent
+                            ? "bg-paradigm-dynamic border-paradigm-dynamic text-white"
+                            : value !== null
+                            ? "bg-paradigm-dynamic-light border-paradigm-dynamic text-paradigm-dynamic-dark"
+                            : "bg-muted border-border text-muted-foreground"
+                        }`}
+                      >
+                        {value !== null ? value : "-"}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="p-4 bg-card rounded-lg border border-paradigm-dynamic">
+              <div className="flex items-center justify-center gap-4 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full bg-paradigm-dynamic-dark border-2 border-paradigm-dynamic"></div>
+                  <span>Raw Calculation</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full border-2 border-paradigm-dynamic" style={{ backgroundColor: "hsl(43, 96%, 56%)" }}></div>
+                  <span>Memoization Hit ✨</span>
+                </div>
+              </div>
+            </div>
+
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 bg-card rounded-lg border border-paradigm-dynamic"
+            >
+              <p className="text-center text-paradigm-dynamic-dark font-medium">
+                {currentStepData?.description}
+              </p>
+            </motion.div>
+          </div>
+
+          {/* Right Column - Pseudo Code */}
+          <div className="space-y-6">
+            <div className="bg-card rounded-lg border border-paradigm-dynamic p-4 sticky top-6">
+              <h3 className="text-sm font-semibold text-paradigm-dynamic-dark mb-4">Pseudo Code</h3>
+              <div className="font-mono text-xs space-y-2">
+                {pseudoCode.map((line, idx) => (
+                  <motion.div
+                    key={idx}
+                    className={`p-2 rounded transition-colors ${
+                      currentStepData?.currentLine === idx + 1
+                        ? "bg-paradigm-dynamic text-white font-bold"
+                        : "bg-muted/30 text-foreground"
+                    }`}
+                    animate={{ scale: currentStepData?.currentLine === idx + 1 ? 1.02 : 1 }}
+                  >
+                    {line}
                   </motion.div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Hint */}
-          <div className="p-4 bg-card rounded-lg border border-paradigm-dynamic">
-            <div className="flex items-center justify-center gap-4 text-xs">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-paradigm-dynamic-dark border-2 border-paradigm-dynamic"></div>
-                <span>Raw Calculation</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full border-2 border-paradigm-dynamic" style={{ backgroundColor: "hsl(43, 96%, 56%)" }}></div>
-                <span>Memoization Hit ✨</span>
+                ))}
               </div>
             </div>
           </div>
-
-          {/* Step Description */}
-          <motion.div
-            key={currentStep}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="p-4 bg-card rounded-lg border border-paradigm-dynamic"
-          >
-            <p className="text-center text-paradigm-dynamic-dark font-medium">
-              {currentStepData?.description}
-            </p>
-          </motion.div>
         </div>
       </Card>
 
