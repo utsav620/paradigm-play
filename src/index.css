@@ -39,25 +39,25 @@ All colors MUST be HSL.
     --radius: 0.75rem;
 
     /* Paradigm colors */
-    --divide-conquer: 217 91% 60%;
+    --divide-conquer: 217 91% 45%;
     --divide-conquer-light: 217 91% 95%;
-    --divide-conquer-dark: 217 91% 35%;
+    --divide-conquer-dark: 217 91% 30%;
     
-    --greedy: 142 76% 36%;
+    --greedy: 142 76% 28%;
     --greedy-light: 142 76% 95%;
-    --greedy-dark: 142 76% 25%;
+    --greedy-dark: 142 76% 20%;
     
-    --dynamic-prog: 187 85% 53%;
+    --dynamic-prog: 187 85% 40%;
     --dynamic-prog-light: 187 85% 95%;
-    --dynamic-prog-dark: 187 85% 35%;
+    --dynamic-prog-dark: 187 85% 28%;
     
-    --backtracking: 271 76% 53%;
+    --backtracking: 271 76% 40%;
     --backtracking-light: 271 76% 95%;
-    --backtracking-dark: 271 76% 35%;
+    --backtracking-dark: 271 76% 28%;
     
-    --branch-bound: 25 95% 53%;
+    --branch-bound: 25 95% 45%;
     --branch-bound-light: 25 95% 95%;
-    --branch-bound-dark: 25 95% 40%;
+    --branch-bound-dark: 25 95% 35%;
 
     /* Animation tokens */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

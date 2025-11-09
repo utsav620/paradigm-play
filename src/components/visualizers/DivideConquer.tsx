@@ -18,6 +18,7 @@ interface Step {
   level: number;
   tree?: TreeNode;
   currentNode?: TreeNode | null;
+  currentLine: number | null;
 }
 
 const DivideConquer = () => {
@@ -61,6 +62,7 @@ const DivideConquer = () => {
       level: 0,
       tree: JSON.parse(JSON.stringify(tree)),
       currentNode: tree,
+      currentLine: null,
     });
 
     const mergeSort = (arr: number[], start: number, level: number, node: TreeNode): number[] => {
@@ -72,6 +74,7 @@ const DivideConquer = () => {
         level,
         tree: JSON.parse(JSON.stringify(tree)),
         currentNode: node,
+        currentLine: arr.length > 1 ? 1 : 2,
       });
 
       if (arr.length <= 1) return arr;
@@ -119,6 +122,7 @@ const DivideConquer = () => {
         level,
         tree: JSON.parse(JSON.stringify(tree)),
         currentNode: mergeNode,
+        currentLine: 3,
       });
 
       return merged;
@@ -132,6 +136,7 @@ const DivideConquer = () => {
       level: 0,
       tree: JSON.parse(JSON.stringify(tree)),
       currentNode: null,
+      currentLine: null,
     });
 
     setSteps(generatedSteps);
@@ -158,6 +163,16 @@ const DivideConquer = () => {
   };
 
   const currentStepData = steps[currentStep] || steps[0];
+
+  const pseudoCode = [
+    "if array.length <= 1: return array",
+    "  // Base case - already sorted",
+    "mid = array.length / 2",
+    "left = mergeSort(array[0:mid])",
+    "right = mergeSort(array[mid:])",
+    "return merge(left, right)",
+    "  // Combine sorted halves",
+  ];
 
   const renderTree = (node: TreeNode | undefined): JSX.Element | null => {
     if (!node) return null;
@@ -217,15 +232,17 @@ const DivideConquer = () => {
   return (
     <div className="space-y-6">
       <Card className="p-8 bg-paradigm-divide-light border-paradigm-divide">
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold text-paradigm-divide-dark mb-2">
-              Merge Sort - Divide & Conquer
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Watch how the array is recursively divided into smaller parts, then merged back together in sorted order.
-            </p>
-          </div>
+        <div className="grid grid-cols-3 gap-6">
+          {/* Left Column - Visualizations */}
+          <div className="col-span-2 space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-paradigm-divide-dark mb-2">
+                Merge Sort - Divide & Conquer
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Watch how the array is recursively divided into smaller parts, then merged back together in sorted order.
+              </p>
+            </div>
 
           {/* Recursion Tree */}
           <div className="bg-card rounded-lg border border-paradigm-divide p-4">
@@ -299,6 +316,31 @@ const DivideConquer = () => {
             </p>
           </motion.div>
         </div>
+
+        {/* Right Column - Pseudo Code */}
+        <div className="space-y-6">
+          <div className="bg-card rounded-lg border border-paradigm-divide p-4 sticky top-6">
+            <h3 className="text-sm font-semibold text-paradigm-divide-dark mb-4">Pseudo Code</h3>
+            <div className="font-mono text-xs space-y-2">
+              {pseudoCode.map((line, idx) => (
+                <motion.div
+                  key={idx}
+                  className={`p-2 rounded transition-colors ${
+                    currentStepData?.currentLine === idx + 1
+                      ? "bg-paradigm-divide text-white font-bold"
+                      : "bg-muted/30 text-foreground"
+                  }`}
+                  animate={{
+                    scale: currentStepData?.currentLine === idx + 1 ? 1.02 : 1,
+                  }}
+                >
+                  {line}
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
       </Card>
 
       <ControlPanel

@@ -21,6 +21,7 @@ interface Step {
   currentRoute: string[] | null;
   bestCost: number;
   description: string;
+  currentLine: number | null;
 }
 
 const BranchBound = () => {
@@ -61,6 +62,7 @@ const BranchBound = () => {
       currentRoute: null,
       bestCost: Infinity,
       description: "Starting TSP with 4 cities. Finding optimal tour...",
+      currentLine: null,
     });
 
     // Simulate exploring routes with branch and bound
@@ -102,6 +104,11 @@ const BranchBound = () => {
       };
       routes.push(route);
 
+      let lineNum = null;
+      if (isPruned) lineNum = 3;
+      else if (isComplete) lineNum = 2;
+      else lineNum = 1;
+
       generatedSteps.push({
         routes: [...routes],
         currentRoute: routeData.path,
@@ -111,6 +118,7 @@ const BranchBound = () => {
           : isComplete
           ? `✓ Complete tour: ${routeData.path.join("→")} (cost: ${cost})`
           : `Exploring: ${routeData.path.join("→")} (cost so far: ${cost})`,
+        currentLine: lineNum,
       });
     });
 
@@ -119,6 +127,7 @@ const BranchBound = () => {
       currentRoute: null,
       bestCost,
       description: `Optimal tour found with cost: ${bestCost}`,
+      currentLine: null,
     });
 
     setSteps(generatedSteps);
@@ -146,18 +155,30 @@ const BranchBound = () => {
 
   const currentStepData = steps[currentStep] || steps[0];
 
+  const pseudoCode = [
+    "explore(path, cost):",
+    "  if path is complete:",
+    "    update best_cost if cost < best_cost",
+    "  if cost >= best_cost:",
+    "    prune this branch  // Bound",
+    "  for each unvisited city:",
+    "    explore(path + city, cost + edge_cost)",
+  ];
+
   return (
     <div className="space-y-6">
       <Card className="p-8 bg-paradigm-branch-light border-paradigm-branch">
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold text-paradigm-branch-dark mb-2">
-              Traveling Salesman - Branch & Bound
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Watch how the algorithm prunes branches that exceed the current best solution.
-            </p>
-          </div>
+        <div className="grid grid-cols-3 gap-6">
+          {/* Left Column - Visualizations */}
+          <div className="col-span-2 space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-paradigm-branch-dark mb-2">
+                Traveling Salesman - Branch & Bound
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Watch how the algorithm prunes branches that exceed the current best solution.
+              </p>
+            </div>
 
           {/* Graph Visualization */}
           <div className="bg-card rounded-lg border border-paradigm-branch p-4">
@@ -298,6 +319,31 @@ const BranchBound = () => {
             </p>
           </motion.div>
         </div>
+
+        {/* Right Column - Pseudo Code */}
+        <div className="space-y-6">
+          <div className="bg-card rounded-lg border border-paradigm-branch p-4 sticky top-6">
+            <h3 className="text-sm font-semibold text-paradigm-branch-dark mb-4">Pseudo Code</h3>
+            <div className="font-mono text-xs space-y-2">
+              {pseudoCode.map((line, idx) => (
+                <motion.div
+                  key={idx}
+                  className={`p-2 rounded transition-colors ${
+                    currentStepData?.currentLine === idx + 1
+                      ? "bg-paradigm-branch text-white font-bold"
+                      : "bg-muted/30 text-foreground"
+                  }`}
+                  animate={{
+                    scale: currentStepData?.currentLine === idx + 1 ? 1.02 : 1,
+                  }}
+                >
+                  {line}
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
       </Card>
 
       <ControlPanel
