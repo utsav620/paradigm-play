@@ -53,7 +53,7 @@ const DynamicProgramming = () => {
       };
     };
 
-    const tree = buildTree(n, 400, 50, 150);
+    const tree = buildTree(n, 400, 50, 120);
 
     generatedSteps.push({
       memo: [...memo],
@@ -259,7 +259,7 @@ const DynamicProgramming = () => {
             {/* Recursion Tree */}
             <div className="bg-card rounded-lg border border-paradigm-dynamic p-4">
               <h3 className="text-sm font-semibold text-paradigm-dynamic-dark mb-4">Recursion Tree</h3>
-              <svg className="w-full h-96">
+              <svg className="w-full h-96" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
                 {renderTree(currentStepData?.tree, currentStepData?.currentIndex)}
               </svg>
             </div>

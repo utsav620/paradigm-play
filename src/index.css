@@ -47,9 +47,9 @@ All colors MUST be HSL.
     --greedy-light: 142 76% 95%;
     --greedy-dark: 142 76% 20%;
     
-    --dynamic-prog: 187 85% 40%;
+    --dynamic-prog: 187 85% 35%;
     --dynamic-prog-light: 187 85% 95%;
-    --dynamic-prog-dark: 187 85% 28%;
+    --dynamic-prog-dark: 187 85% 22%;
     
     --backtracking: 271 76% 40%;
     --backtracking-light: 271 76% 95%;
